@@ -17,6 +17,7 @@
             overflow: hidden;
             background-color: #000;
             color: white;
+            cursor: url('whirlpool.svg'), auto; /* Default cursor with fallback */
         }
 
         /* Canvas styles */
@@ -103,6 +104,12 @@
             padding: 5px 8px; /* Slightly more padding */
             margin-left: 12px; /* Slightly more spacing */
             font-size: 13px;
+            transition: border-color 0.2s ease; /* Add smooth transition */
+        }
+
+        input[type="number"]:focus {
+            border-color: rgba(255, 255, 255, 0.5); /* Highlight on focus */
+            outline: none; /* Remove default outline */
         }
 
         .header {
@@ -146,12 +153,17 @@
             border-radius: 5px;
             cursor: pointer;
             border: 2px solid transparent;
-            transition: border-color 0.2s ease-in-out;
+            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out; /* Added box-shadow transition */
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        }
+
+        .bg-option:hover {
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); /* Raise on hover*/
         }
 
         .bg-option.selected {
             border-color: #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Keep a subtle shadow when selected */
         }
 
         #metal-bg {
@@ -181,6 +193,11 @@
             font-size: 13px;
             opacity: 0.6; /* Slightly more visible */
             color: #ccc;
+            transition: opacity 0.2s ease; /* Smooth transition for opacity */
+        }
+
+        .info:hover {
+            opacity: 0.8; /* Increase opacity on hover */
         }
 
         @media (max-width: 768px) {
@@ -201,8 +218,26 @@
             opacity: 0.1;
         }
     </style>
+    <script>
+        // Function to preload the whirlpool cursor
+        function preloadWhirlpoolCursor() {
+            const img = new Image();
+            img.src = 'whirlpool.svg'; //  path
+            img.onload = () => {
+                //  cursor style to the body *after* the image loads
+                document.body.style.cursor = "url('whirlpool.svg'), auto";
+            };
+            img.onerror = () => {
+                console.error('Failed to load custom cursor: whirlpool.svg');
+                //  set a default cursor if the custom cursor fails to load
+                document.body.style.cursor = 'auto';
+            };
+        }
+
+        preloadWhirlpoolCursor();
+    </script>
 </head>
-<body>
+<body class="custom-cursor">
     <canvas id="canvas"></canvas>
 
     <div class="controls" id="controls">
@@ -214,11 +249,11 @@
         <div class="control-group">
             <div class="control-label">
                 <span>Refraction</span>
-                <span id="refraction-value">0.04</span>
+                <span id="refraction-value">0.2</span>
             </div>
             <div class="slider-container">
-                <input type="range" id="refraction" min="0" max="0.2" step="0.01" value="0.04">
-                <input type="number" id="refraction-input" min="0" max="0.2" step="0.01" value="0.04">
+                <input type="range" id="refraction" min="0" max="0.2" step="0.01" value="0.2">
+                <input type="number" id="refraction-input" min="0" max="0.2" step="0.01" value="0.2">
             </div>
         </div>
 
@@ -282,8 +317,8 @@
                 <span>Background</span>
             </div>
             <div class="background-selector">
-                <div class="bg-option selected" id="metal-bg" data-bg="metal" title="Metal"></div>
-                <div class="bg-option" id="blue-bg" data-bg="blue" title="Blue"></div>
+                <div class="bg-option" id="metal-bg" data-bg="metal" title="Metal"></div>
+                <div class="bg-option selected" id="blue-bg" data-bg="blue" title="Blue"></div>
                 <div class="bg-option" id="green-bg" data-bg="green" title="Green"></div>
                 <div class="bg-option" id="purple-bg" data-bg="purple" title="Purple"></div>
                 <div class="bg-option" id="dark-bg" data-bg="dark" title="Dark"></div>
@@ -299,13 +334,13 @@
     <script>
         // Configuration object to store all parameters
         const config = {
-            refraction: 0.04,
+            refraction: 0.2, // Changed default refraction to 0.2
             edge: 1,
             patternBlur: 0,
             liquid: 0.61,
             speed: 1,
             patternScale: 10,
-            background: 'metal',
+            background: 'blue',
             mouse: { x: 0, y: 0 }
         };
 
@@ -379,3 +414,294 @@
                 } else if (background == 1) { // Blue
                     baseColor = mix(vec3(0.05, 0.1, 0.5), vec3(0.0, 0.3, 0.8), blend);
                 } else if (background == 2) { // Green
+                    baseColor = mix(vec3(0.05, 0.3, 0.1), vec3(0.1, 0.5, 0.2), blend);
+                } else if (background == 3) { // Purple
+                    baseColor = mix(vec3(0.3, 0.05, 0.3), vec3(0.5, 0.1, 0.5), blend);
+                } else { // Dark
+                    baseColor = mix(vec3(0.05, 0.05, 0.07), vec3(0.15, 0.15, 0.17), blend);
+                }
+
+                // Add highlights
+                float highlight = pow(max(0.0, snoise(uv * 5.0 + distortion)), 5.0);
+                baseColor += highlight * 0.5;
+
+                return baseColor;
+            }
+
+            void main() {
+                // Normalized pixel coordinates and aspect ratio correction
+                vec2 uv = gl_FragCoord.xy / resolution.xy;
+                float aspect = resolution.x / resolution.y;
+                uv.x *= aspect;
+
+                // Centered UV coordinates
+                vec2 center = vec2(0.5 * aspect, 0.5);
+
+                // Normalize mouse coordinates
+                vec2 mouseNorm = mouse / resolution.xy;
+                mouseNorm.x *= aspect;
+
+                // Time variable for animation
+                float t = time * speed;
+
+                // Create distortion effect
+                vec2 distortedUV = uv;
+
+                // Mouse influence (creates ripple effect)
+                float mouseDistance = distance(uv, mouseNorm);
+                float mouseInfluence = exp(-mouseDistance * 10.0) * liquid;
+
+                // Pattern generation with scale parameter
+                float scale = patternScale / 100.0;
+                vec2 scaledUV = uv * scale;
+
+                // Create noise pattern
+                float noise1 = fbm(scaledUV + t * 0.1);
+                float noise2 = fbm(scaledUV * 2.0 - t * 0.15);
+
+                // Apply pattern blur
+                if (patternBlur > 0.0) {
+                    float blurAmount = patternBlur / 10.0;
+                    vec2 blurStep = vec2(1.0 / resolution.x, 1.0 / resolution.y) * blurAmount; // Calculate blur step
+                    float totalWeight = 1.0;
+                    vec2 offset;
+
+                    for (float i = 1.0; i <= 3.0; i++) { // More efficient blur loop
+                        offset = blurStep * i;
+                        noise1 += fbm(scaledUV + offset + t * 0.1);
+                        noise2 += fbm(scaledUV * 2.0 + offset - t * 0.15);
+                        noise1 += fbm(scaledUV - offset + t * 0.1);
+                        noise2 += fbm(scaledUV * 2.0 - offset - t * 0.15);
+                        totalWeight += 4.0;
+                    }
+                    noise1 /= totalWeight;
+                    noise2 /= totalWeight;
+                }
+
+                // Combine noise patterns
+                float combinedNoise = noise1 * noise2;
+
+                // Apply liquid effect
+                distortedUV += vec2(
+                    sin(uv.y * 10.0 + combinedNoise * 5.0) * 0.02,
+                    cos(uv.x * 10.0 + combinedNoise * 5.0) * 0.02
+                ) * liquid;
+
+                // Add mouse distortion
+                distortedUV += (uv - mouseNorm) * mouseInfluence;
+
+                // Apply refraction
+                vec2 refractedUV = mix(uv, distortedUV, refraction * 10.0);
+
+                // Get base metal color
+                vec3 color = getMetalColor(refractedUV, vec2(combinedNoise));
+
+                // Edge detection effect (Optimized gradient calculation)
+                vec2 duv = vec2(0.01, 0.0);
+                float edgeX = abs(snoise(refractedUV * 10.0) - snoise((refractedUV + duv.xy) * 10.0));
+                float edgeY = abs(snoise(refractedUV * 10.0) - snoise((refractedUV + duv.yx) * 10.0));
+                float edgeEffect = (edgeX + edgeY) * edge * 2.0;
+
+                // Enhance edges
+                color += vec3(edgeEffect);
+
+                // Output final color
+                gl_FragColor = vec4(color, 1.0);
+            }
+        `;
+
+        const getVertexShader = () => `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        // Create shader material
+        const material = new THREE.ShaderMaterial({
+            uniforms: {
+                time: { value: 0 },
+                resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                mouse: { value: new THREE.Vector2(0.5, 0.5) },
+                refraction: { value: config.refraction },
+                edge: { value: config.edge },
+                patternBlur: { value: config.patternBlur },
+                liquid: { value: config.liquid },
+                speed: { value: config.speed },
+                patternScale: { value: config.patternScale },
+                background: { value: 1 } // 0 = metal, 1 = blue, 2 = green, 3 = purple, 4 = dark.  Changed to 1 for blue
+            },
+            fragmentShader: getFragmentShader(),
+            vertexShader: getVertexShader()
+        });
+
+        // Create a simple plane geometry that fills the screen
+        const geometry = new THREE.PlaneGeometry(2, 2);
+        const plane = new THREE.Mesh(geometry, material);
+        scene.add(plane);
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            material.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
+        });
+
+        // Track mouse position
+        document.addEventListener('mousemove', (event) => {
+            material.uniforms.mouse.value.set(event.clientX, window.innerHeight - event.clientY);
+        });
+
+        // Handle touch events for mobile
+        document.addEventListener('touchmove', (event) => {
+            if (event.touches.length > 0) {
+                event.preventDefault();
+                material.uniforms.mouse.value.set(
+                    event.touches[0].clientX,
+                    window.innerHeight - event.touches[0].clientY
+                );
+            }
+        }, { passive: false });
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            material.uniforms.time.value += 0.01;
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // UI Controls setup
+        function setupControls() {
+            // Helper function to update slider and number input sync
+            function setupSliderControl(id, property) {
+                const slider = document.getElementById(id);
+                const numberInput = document.getElementById(`${id}-input`);
+                const valueDisplay = document.getElementById(`${id}-value`);
+
+                // Update from slider
+                slider.addEventListener('input', () => {
+                    const value = parseFloat(slider.value);
+                    config[property] = value;
+                    numberInput.value = value;
+                    valueDisplay.textContent = value.toFixed(2); // Consistent decimal places
+                    material.uniforms[property].value = value;
+                });
+
+                // Update from number input
+                numberInput.addEventListener('change', () => {
+                    const value = parseFloat(numberInput.value);
+                    config[property] = value;
+                    slider.value = value;
+                    valueDisplay.textContent = value.toFixed(2); // Consistent decimal places
+                    material.uniforms[property].value = value;
+                });
+
+                // Initial update of the display
+                valueDisplay.textContent = parseFloat(slider.value).toFixed(2);
+            }
+
+            // Set up all slider controls
+            setupSliderControl('refraction', 'refraction');
+            setupSliderControl('edge', 'edge');
+            setupSliderControl('pattern-blur', 'patternBlur');
+            setupSliderControl('liquid', 'liquid');
+            setupSliderControl('speed', 'speed');
+            setupSliderControl('pattern-scale', 'patternScale');
+
+            // Background selection
+            const bgOptions = document.querySelectorAll('.bg-option');
+            bgOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    // Remove selected class from all options
+                    bgOptions.forEach(opt => opt.classList.remove('selected'));
+
+                    // Add selected class to clicked option
+                    option.classList.add('selected');
+
+                    // Update background setting
+                    const bgType = option.getAttribute('data-bg');
+                    config.background = bgType;
+
+                    // Update shader uniform
+                    const bgIndex = ['metal', 'blue', 'green', 'purple', 'dark'].indexOf(bgType);
+                    material.uniforms.background.value = bgIndex;
+                });
+            });
+
+            // Toggle controls visibility
+            const controls = document.getElementById('controls');
+            const toggleBtn = document.getElementById('toggle-controls');
+
+            toggleBtn.addEventListener('click', () => {
+                if (controls.classList.contains('hidden')) {
+                    controls.classList.remove('hidden');
+                    toggleBtn.textContent = 'Hide';
+                } else {
+                    controls.classList.add('hidden');
+                    toggleBtn.textContent = 'Show';
+                }
+            });
+        }
+
+        // Initialize controls
+        setupControls();
+
+        // Parse URL parameters to set initial values
+        function parseUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+
+            // Function to update parameter from URL
+            function updateParameterFromURL(paramName, elementId, uniformName, decimalPlaces = 2) {
+                if (urlParams.has(paramName)) {
+                    const value = parseFloat(urlParams.get(paramName));
+                    if (!isNaN(value)) { // check if the parsed value is a valid number
+                        config[paramName] = value;
+                        material.uniforms[uniformName].value = value;
+                        const element = document.getElementById(elementId);
+                        if (element) {
+                            element.value = value.toFixed(decimalPlaces);
+                        }
+                        const displayElement = document.getElementById(elementId.replace('-input', '-value'));
+                        if (displayElement) {
+                            displayElement.textContent = value.toFixed(decimalPlaces);
+                        }
+                    }
+                }
+            }
+
+            // Update all parameters
+            updateParameterFromURL('refraction', 'refraction', 'refraction');
+            updateParameterFromURL('edge', 'edge', 'edge', 1);
+            updateParameterFromURL('patternBlur', 'pattern-blur', 'patternBlur', 1);
+            updateParameterFromURL('liquid', 'liquid', 'liquid');
+            updateParameterFromURL('speed', 'speed', 'speed', 1);
+            updateParameterFromURL('patternScale', 'pattern-scale', 'patternScale', 0);
+
+
+            if (urlParams.has('background')) {
+                const bgType = urlParams.get('background');
+                const validBgTypes = ['metal', 'blue', 'green', 'purple', 'dark'];
+                if (validBgTypes.includes(bgType)) {
+                    config.background = bgType;
+
+                    // Update UI
+                    document.querySelectorAll('.bg-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                        if (opt.getAttribute('data-bg') === bgType) {
+                            opt.classList.add('selected');
+                        }
+                    });
+
+                    // Update shader uniform
+                    const bgIndex = validBgTypes.indexOf(bgType);
+                    material.uniforms.background.value = bgIndex;
+                }
+            }
+        }
+
+        // Parse URL parameters on load
+        parseUrlParams();
+    </script>
+</body>
+</html>
