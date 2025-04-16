@@ -16,8 +16,6 @@
             background-color: #0a0a0a;
             color: #fff;
             display: flex;
-            justify-content: center;
-            align-items: center;
             min-height: 100vh;
             overflow: hidden;
         }
@@ -25,25 +23,18 @@
         .container {
             display: flex;
             width: 100%;
-            max-width: 1200px;
             height: 100vh;
-            padding: 20px;
         }
 
         .preview-panel {
             flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             position: relative;
-            margin-right: 20px;
         }
 
         .canvas-container {
             width: 100%;
             height: 100%;
             background-color: #1a1a1a;
-            border-radius: 12px;
             overflow: hidden;
             position: relative;
         }
@@ -57,52 +48,55 @@
         }
 
         .controls-panel {
-            width: 400px;
+            width: 340px;
             background-color: #111;
-            border-radius: 12px;
             padding: 20px;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
         .control-group {
-            margin-bottom: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
 
         .control-label {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
         }
 
         .control-value {
             color: #fff;
             background-color: #333;
-            padding: 5px 10px;
+            padding: 4px 8px;
             border-radius: 4px;
             font-size: 14px;
-            min-width: 70px;
+            min-width: 60px;
             text-align: center;
         }
 
         .slider-container {
             position: relative;
-            height: 6px;
-            background-color: #333;
-            border-radius: 3px;
+            height: 4px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
         }
 
         .slider-fill {
             position: absolute;
             height: 100%;
             background-color: #3b82f6;
-            border-radius: 3px;
+            border-radius: 2px;
         }
 
         input[type="range"] {
             -webkit-appearance: none;
             width: 100%;
-            height: 6px;
+            height: 4px;
             background: transparent;
             position: absolute;
             top: 0;
@@ -137,8 +131,8 @@
         }
 
         .bg-option {
-            width: 30px;
-            height: 30px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             cursor: pointer;
             border: 2px solid transparent;
@@ -181,7 +175,7 @@
             font-size: 16px;
             cursor: pointer;
             text-align: center;
-            margin-top: 20px;
+            margin-top: auto;
             transition: background-color 0.2s;
         }
 
@@ -190,7 +184,7 @@
         }
 
         .tips {
-            margin-top: 20px;
+            margin-top: 16px;
             font-size: 12px;
             color: #888;
             line-height: 1.5;
@@ -206,13 +200,12 @@
             }
             
             .preview-panel {
-                margin-right: 0;
-                margin-bottom: 20px;
-                height: 50vh;
+                height: 60vh;
             }
             
             .controls-panel {
                 width: 100%;
+                height: 40vh;
             }
         }
     </style>
@@ -585,4 +578,4 @@
                     float n = texture2D(tex, uv + vec2(0.0, dy)).r;
                     float e = texture2D(tex, uv + vec2(dx, 0.0)).r;
                     float s = texture2D(tex, uv + vec2(0.0, -dy)).r;
-                    float w = texture2D(tex, uv + vec2(-dx, 0.0)).r;
+                    float w = texture2D(tex, uv + vec2(-dx, 0.0)).r
