@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liquid Metal Effect</title>
+    <style>
+        /* Reset and basic styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            overflow: hidden;
+            background-color: #000;
+            color: white;
+        }
+
+        /* Canvas styles */
+        #canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        /* Controls panel */
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 320px; /* Slightly wider for better layout */
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            padding: 20px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Slightly stronger shadow */
+            transition: opacity 0.2s ease-in-out; /* Smoother transition */
+            opacity: 0.9; /* Slightly more visible by default */
+        }
+
+        .controls:hover {
+            opacity: 1;
+        }
+
+        .control-group {
+            margin-bottom: 18px; /* Slightly more spacing */
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 7px; /* Slightly more spacing */
+            font-size: 14px;
+            color: #eee; /* Slightly lighter text */
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 5px; /* Slightly thicker slider */
+            background: #555; /* Slightly lighter background */
+            outline: none;
+            border-radius: 3px; /* More rounded */
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px; /* Slightly larger thumb */
+            height: 18px; /* Slightly larger thumb */
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Add subtle shadow to thumb */
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        input[type="number"] {
+            width: 60px; /* Slightly wider number input */
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2); /* Subtle border */
+            color: white;
+            border-radius: 5px; /* More rounded */
+            padding: 5px 8px; /* Slightly more padding */
+            margin-left: 12px; /* Slightly more spacing */
+            font-size: 13px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px; /* More spacing below header */
+        }
+
+        .title {
+            font-size: 20px; /* Slightly larger title */
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .toggle-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            padding: 7px 12px; /* Slightly more padding */
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        .toggle-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .background-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px; /* Slightly more gap */
+            margin-top: 8px; /* Slightly more top margin */
+        }
+
+        .bg-option {
+            width: 35px; /* Slightly larger options */
+            height: 35px; /* Slightly larger options */
+            border-radius: 5px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.2s ease-in-out;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        }
+
+        .bg-option.selected {
+            border-color: #fff;
+        }
+
+        #metal-bg {
+            background: linear-gradient(135deg, #555, #aaa); /* Slightly lighter metal */
+        }
+
+        #blue-bg {
+            background: linear-gradient(135deg, #001144, #0077cc); /* Slightly more vibrant blue */
+        }
+
+        #green-bg {
+            background: linear-gradient(135deg, #004400, #00bb77); /* Slightly more vibrant green */
+        }
+
+        #purple-bg {
+            background: linear-gradient(135deg, #440044, #bb00bb); /* Slightly more vibrant purple */
+        }
+
+        #dark-bg {
+            background: #222; /* Slightly lighter dark */
+        }
+
+        .info {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            font-size: 13px;
+            opacity: 0.6; /* Slightly more visible */
+            color: #ccc;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                width: 90%;
+                left: 5%;
+                right: auto;
+                bottom: 10px;
+                padding: 15px;
+            }
+
+            .info {
+                display: none;
+            }
+        }
+
+        .controls.hidden {
+            opacity: 0.1;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <div class="controls" id="controls">
+        <div class="header">
+            <div class="title">Liquid Metal Controls</div>
+            <button class="toggle-btn" id="toggle-controls">Hide</button>
+        </div>
+
+        <div class="control-group">
+            <div class="control-label">
+                <span>Refraction</span>
+                <span id="refraction-value">0.04</span>
+            </div>
+            <div class="slider-container">
+                <input type="range" id="refraction" min="0" max="0.2" step="0.01" value="0.04">
+                <input type="number" id="refraction-input" min="0" max="0.2" step="0.01" value="0.04">
+            </div>
+        </div>
+
+        <div class="control-group">
+            <div class="control-label">
+                <span>Edge</span>
+                <span id="edge-value">1</span>
+            </div>
+            <div class="slider-container">
+                <input type="range" id="edge" min="0" max="3" step="0.1" value="1">
+                <input type="number" id="edge-input" min="0" max="3" step="0.1" value="1">
+            </div>
+        </div>
+
+        <div class="control-group">
+            <div class="control-label">
+                <span>Pattern Blur</span>
+                <span id="pattern-blur-value">0</span>
+            </div>
+            <div class="slider-container">
+                <input type="range" id="pattern-blur" min="0" max="5" step="0.1" value="0">
+                <input type="number" id="pattern-blur-input" min="0" max="5" step="0.1" value="0">
+            </div>
+        </div>
+
+        <div class="control-group">
+            <div class="control-label">
+                <span>Liquid</span>
+                <span id="liquid-value">0.61</span>
+            </div>
+            <div class="slider-container">
+                <input type="range" id="liquid" min="0" max="2" step="0.01" value="0.61">
+                <input type="number" id="liquid-input" min="0" max="2" step="0.01" value="0.61">
+            </div>
+        </div>
+
+        <div class="control-group">
+            <div class="control-label">
+                <span>Speed</span>
+                <span id="speed-value">1</span>
+            </div>
+            <div class="slider-container">
+                <input type="range" id="speed" min="0" max="3" step="0.1" value="1">
+                <input type="number" id="speed-input" min="0" max="3" step="0.1" value="1">
+            </div>
+        </div>
+
+        <div class="control-group">
+            <div class="control-label">
+                <span>Pattern Scale</span>
+                <span id="pattern-scale-value">10</span>
+            </div>
+            <div class="slider-container">
+                <input type="range" id="pattern-scale" min="1" max="30" step="1" value="10">
+                <input type="number" id="pattern-scale-input" min="1" max="30" step="1" value="10">
+            </div>
+        </div>
+
+        <div class="control-group">
+            <div class="control-label">
+                <span>Background</span>
+            </div>
+            <div class="background-selector">
+                <div class="bg-option selected" id="metal-bg" data-bg="metal" title="Metal"></div>
+                <div class="bg-option" id="blue-bg" data-bg="blue" title="Blue"></div>
+                <div class="bg-option" id="green-bg" data-bg="green" title="Green"></div>
+                <div class="bg-option" id="purple-bg" data-bg="purple" title="Purple"></div>
+                <div class="bg-option" id="dark-bg" data-bg="dark" title="Dark"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="info">
+        Move your mouse/touch to interact with the liquid effect
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Configuration object to store all parameters
+        const config = {
+            refraction: 0.04,
+            edge: 1,
+            patternBlur: 0,
+            liquid: 0.61,
+            speed: 1,
+            patternScale: 10,
+            background: 'metal',
+            mouse: { x: 0, y: 0 }
+        };
+
+        // Initialize Three.js scene
+        const scene = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
+
+        // Set up renderer and camera
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.position.z = 1;
+
+        // Create shader material for liquid metal effect
+        const getFragmentShader = () => `
+            uniform float time;
+            uniform vec2 resolution;
+            uniform vec2 mouse;
+            uniform float refraction;
+            uniform float edge;
+            uniform float patternBlur;
+            uniform float liquid;
+            uniform float speed;
+            uniform float patternScale;
+            uniform int background;
+
+            // Noise functions (Optimized and self-contained)
+            vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+            vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+            vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
+
+            float snoise(vec2 v) {
+                const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
+                vec2 i  = floor(v + dot(v, C.yy));
+                vec2 x0 = v -   i + dot(i, C.xx);
+                vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+                vec4 x12 = x0.xyxy + C.xxzz;
+                x12.xy -= i1;
+                i = mod289(i);
+                vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0)) + i.x + vec3(0.0, i1.x, 1.0));
+                vec3 m = max(0.5 - vec3(dot(x0, x0), dot(x12.xy, x12.xy), dot(x12.zw, x12.zw)), 0.0);
+                m = m*m*m*m; // Further power for sharper falloff
+                vec3 x = 2.0 * fract(p * C.www) - 1.0;
+                vec3 h = abs(x) - 0.5;
+                vec3 ox = floor(x + 0.5);
+                vec3 a0 = x - ox;
+                m *= 1.79284291400159 - 0.85373472095314 * (a0*a0 + h*h);
+                vec3 g;
+                g.x  = a0.x  * x0.x  + h.x  * x0.y;
+                g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+                return 70.0 * dot(m, g); // Adjusted scaling for better range
+            }
+
+            float fbm(vec2 p) {
+                float f = 0.0;
+                float w = 0.5;
+                for (int i = 0; i < 4; i++) { // Reduced iterations for slight performance gain
+                    f += w * snoise(p);
+                    p *= 2.0;
+                    w *= 0.5;
+                }
+                return f;
+            }
+
+            vec3 getMetalColor(vec2 uv, vec2 distortion) {
+                vec3 baseColor;
+                float noiseVal = snoise(uv * 2.0 + distortion * 0.5);
+                float blend = smoothstep(-1.0, 1.0, noiseVal);
+
+                if (background == 0) { // Metal
+                    baseColor = mix(vec3(0.8, 0.8, 0.9), vec3(0.2, 0.2, 0.25), blend);
+                } else if (background == 1) { // Blue
+                    baseColor = mix(vec3(0.05, 0.1, 0.5), vec3(0.0, 0.3, 0.8), blend);
+                } else if (background == 2) { // Green
